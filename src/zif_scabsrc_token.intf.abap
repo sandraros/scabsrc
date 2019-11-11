@@ -1,11 +1,15 @@
-interface ZIF_SCABSRC_TOKEN
-  public .
+"! <p class="shorttext synchronized" lang="en"></p>
+"!
+INTERFACE zif_scabsrc_token
+  PUBLIC .
 
 
-  methods GET_STATEMENT
-    returning
-      value(STATEMENT) type ref to ZIF_SCABSRC_STATEMENT .
-  methods GET_ALL_FIELDS
-    returning
-      value(TOKEN) type STOKESX .
-endinterface.
+  METHODS get_statement
+    RETURNING
+      VALUE(statement) TYPE REF TO zif_scabsrc_statement .
+  METHODS get_all_fields
+    RETURNING
+      VALUE(token) TYPE stokesx .
+  DATA value TYPE stokesx-str READ-ONLY.
+
+ENDINTERFACE.

@@ -1,125 +1,141 @@
-class ZCL_SCABSRC_STATEMENT definition
-  public
-  create public .
+"! <p class="shorttext synchronized" lang="en"></p>
+"!
+CLASS zcl_scabsrc_statement DEFINITION
+  PUBLIC
+  CREATE PUBLIC .
 
-public section.
+  PUBLIC SECTION.
 
-  interfaces ZIF_SCABSRC_STATEMENT .
+    INTERFACES zif_scabsrc_statement .
 
-  aliases GET_ALL_FIELDS
-    for ZIF_SCABSRC_STATEMENT~GET_ALL_FIELDS .
-  aliases GET_BLOCK
-    for ZIF_SCABSRC_STATEMENT~GET_BLOCK .
-  aliases GET_BLOCKS
-    for ZIF_SCABSRC_STATEMENT~GET_BLOCKS .
-  aliases GET_INDEX
-    for ZIF_SCABSRC_STATEMENT~GET_INDEX .
-  aliases GET_SOURCE_UNIT
-    for ZIF_SCABSRC_STATEMENT~GET_SOURCE_UNIT .
-  aliases GET_TOKENS
-    for ZIF_SCABSRC_STATEMENT~GET_TOKENS .
+    ALIASES get_all_fields
+      FOR zif_scabsrc_statement~get_all_fields .
+    ALIASES get_block
+      FOR zif_scabsrc_statement~get_block .
+    ALIASES get_blocks
+      FOR zif_scabsrc_statement~get_blocks .
+    ALIASES get_index
+      FOR zif_scabsrc_statement~get_index .
+    ALIASES get_source_unit
+      FOR zif_scabsrc_statement~get_source_unit .
+    ALIASES get_tokens
+      FOR zif_scabsrc_statement~get_tokens .
 
-  methods CONSTRUCTOR
-    importing
-      !SCABSRC type ref to ZCL_SCABSRC
-      !INDEX type I .
-protected section.
-private section.
+    METHODS constructor
+      IMPORTING
+        !scabsrc TYPE REF TO zcl_scabsrc
+        !index   TYPE i .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 
-  data INDEX type SYTABIX .
-  data SCABSRC type ref to ZCL_SCABSRC .
+    DATA index TYPE sytabix .
+    DATA scabsrc TYPE REF TO zcl_scabsrc .
 ENDCLASS.
 
 
 
-CLASS ZCL_SCABSRC_STATEMENT IMPLEMENTATION.
+CLASS zcl_scabsrc_statement IMPLEMENTATION.
 
 
-  method CONSTRUCTOR.
+  METHOD constructor.
 
-    ME->INDEX = INDEX.
-    ME->SCABSRC = SCABSRC.
+    me->index = index.
+    me->scabsrc = scabsrc.
 
-  endmethod.
-
-
-  method ZIF_SCABSRC_STATEMENT~GET_ALL_FIELDS.
-
-    READ TABLE SCABSRC->LT_SSTMNT INDEX INDEX INTO STATEMENT.
-
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_STATEMENT~GET_BLOCK.
+  METHOD zif_scabsrc_statement~get_all_fields.
 
-    FIELD-SYMBOLS <LS_SSTMNT> TYPE SSTMNT.
-    READ TABLE SCABSRC->LT_SSTMNT INDEX INDEX ASSIGNING <LS_SSTMNT>.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT BLOCK TYPE ZCL_SCABSRC_BLOCK
+    READ TABLE scabsrc->lt_sstmnt INDEX index INTO statement.
+
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_statement~get_block.
+
+    FIELD-SYMBOLS <ls_sstmnt> TYPE sstmnt.
+    READ TABLE scabsrc->lt_sstmnt INDEX index ASSIGNING <ls_sstmnt>.
+    IF sy-subrc = 0.
+      CREATE OBJECT block TYPE zcl_scabsrc_block
         EXPORTING
-          SCABSRC = SCABSRC
-          INDEX   = <LS_SSTMNT>-STRUC.
+          scabsrc = scabsrc
+          index   = <ls_sstmnt>-struc.
     ENDIF.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_STATEMENT~GET_BLOCKS.
+  METHOD zif_scabsrc_statement~get_blocks.
 
-    DATA LO_BLOCK TYPE REF TO ZIF_SCABSRC_BLOCK.
+*    DATA lo_block TYPE REF TO zif_scabsrc_block.
+*
+*    lo_block = get_block( ).
+*    IF lo_block IS BOUND.
+*      CREATE OBJECT blocks TYPE zcl_scabsrc_blocks
+*        EXPORTING
+*          scabsrc = scabsrc.
+*    ENDIF.
+*    WHILE lo_block IS BOUND.
+*      blocks->add_block( lo_block->get_index( ) ).
+*      IF ( type IS SUPPLIED AND type = lo_block->get_type( ) )
+*            OR ( stmnt_type IS SUPPLIED AND stmnt_type = lo_block->get_stmnt_type( ) ).
+*        EXIT.
+*      ENDIF.
+*      lo_block = lo_block->get_parent_block( ).
+*    ENDWHILE.
 
-    LO_BLOCK = GET_BLOCK( ).
-    IF LO_BLOCK IS BOUND.
-      CREATE OBJECT BLOCKS TYPE ZCL_SCABSRC_BLOCKS
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_statement~get_index.
+
+    index = me->index.
+
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_statement~get_source_unit.
+
+    FIELD-SYMBOLS <ls_sstmnt> TYPE sstmnt.
+    READ TABLE scabsrc->lt_sstmnt INDEX index ASSIGNING <ls_sstmnt>.
+    IF sy-subrc = 0.
+      CREATE OBJECT source_unit TYPE zcl_scabsrc_source_unit
         EXPORTING
-          SCABSRC = SCABSRC.
-    ENDIF.
-    WHILE LO_BLOCK IS BOUND.
-      BLOCKS->ADD_BLOCK( LO_BLOCK->GET_INDEX( ) ).
-      IF ( TYPE IS SUPPLIED AND TYPE = LO_BLOCK->GET_TYPE( ) )
-            OR ( STMNT_TYPE IS SUPPLIED AND STMNT_TYPE = LO_BLOCK->GET_STMNT_TYPE( ) ).
-        EXIT.
-      ENDIF.
-      LO_BLOCK = LO_BLOCK->GET_PARENT_BLOCK( ).
-    ENDWHILE.
-
-  endmethod.
-
-
-  method ZIF_SCABSRC_STATEMENT~GET_INDEX.
-
-    INDEX = ME->INDEX.
-
-  endmethod.
-
-
-  method ZIF_SCABSRC_STATEMENT~GET_SOURCE_UNIT.
-
-    FIELD-SYMBOLS <LS_SSTMNT> TYPE SSTMNT.
-    READ TABLE SCABSRC->LT_SSTMNT INDEX INDEX ASSIGNING <LS_SSTMNT>.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT SOURCE_UNIT TYPE ZCL_SCABSRC_SOURCE_UNIT
-        EXPORTING
-          SCABSRC = SCABSRC
-          INDEX   = <LS_SSTMNT>-LEVEL.
-    ENDIF.
-
-  endmethod.
-
-
-  method ZIF_SCABSRC_STATEMENT~GET_TOKENS.
-
-    FIELD-SYMBOLS <LS_SSTMNT> TYPE SSTMNT.
-    READ TABLE SCABSRC->LT_SSTMNT INDEX INDEX ASSIGNING <LS_SSTMNT>.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT TOKENS TYPE ZCL_SCABSRC_TOKENS
-        EXPORTING
-          SCABSRC = SCABSRC
-          FROM    = <LS_SSTMNT>-FROM
-          TO      = <LS_SSTMNT>-TO.
+          scabsrc = scabsrc
+          index   = <ls_sstmnt>-level.
     ENDIF.
 
-  endmethod.
+  ENDMETHOD.
 
+
+  METHOD zif_scabsrc_statement~get_tokens.
+
+    ASSIGN scabsrc->lt_sstmnt[ index ] TO FIELD-SYMBOL(<ls_sstmnt>).
+    ASSERT sy-subrc = 0.
+
+    CREATE OBJECT tokens TYPE zcl_scabsrc_tokens
+      EXPORTING
+        scabsrc = scabsrc
+        from    = <ls_sstmnt>-from
+        to      = <ls_sstmnt>-to.
+
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_statement~get_token.
+
+    ASSIGN scabsrc->lt_sstmnt[ index ] TO FIELD-SYMBOL(<ls_sstmnt>).
+    ASSERT sy-subrc = 0.
+
+    DATA(index_token) = <ls_sstmnt>-from + position - 1.
+    IF index_token BETWEEN <ls_sstmnt>-from AND <ls_sstmnt>-to.
+      CREATE OBJECT token TYPE zcl_scabsrc_token
+        EXPORTING
+          scabsrc = scabsrc
+          index   = index_token.
+    ENDIF.
+
+  ENDMETHOD.
 
 ENDCLASS.

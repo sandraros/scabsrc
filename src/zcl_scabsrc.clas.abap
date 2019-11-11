@@ -1,227 +1,251 @@
-class ZCL_SCABSRC definition
-  public
-  create public
-  GLOBAL FRIENDS zCL_SCABSRC_TOKEN.
+"! <p class="shorttext synchronized" lang="en"></p>
+"!
+CLASS zcl_scabsrc DEFINITION
+  PUBLIC
+  CREATE PUBLIC
+  GLOBAL FRIENDS zcl_scabsrc_token.
 
-public section.
+  PUBLIC SECTION.
 
-  data:
-    LT_STOKESX    TYPE TABLE OF STOKESX .
-  data:
-    LT_SSTMNT     TYPE TABLE OF SSTMNT .
-  data:
-    LT_SLEVEL     TYPE TABLE OF SLEVEL .
-  data:
-    LT_SSTRUC     TYPE TABLE OF SSTRUC .
-  data:
-    LT_SENHMT     TYPE TABLE OF SENHMT .
+    DATA:
+      lt_stokesx    TYPE TABLE OF stokesx .
+    DATA:
+      lt_sstmnt     TYPE TABLE OF sstmnt .
+    DATA:
+      lt_slevel     TYPE TABLE OF slevel .
+    DATA:
+      lt_sstruc     TYPE TABLE OF sstruc .
+    DATA:
+      lt_senhmt     TYPE TABLE OF senhmt .
 
-  methods CONSTRUCTOR
-    importing
-      !I_PROGRAM type SYREPID optional
-      !IT_SRCLINE type STRING_TABLE optional .
-  methods GET_TOKEN
-    importing
-      !INDEX type SYTABIX
-    returning
-      value(TOKEN) type ref to ZIF_SCABSRC_TOKEN .
-  methods GET_STATEMENT
-    importing
-      !INDEX type SYTABIX
-    returning
-      value(STATEMENT) type ref to ZIF_SCABSRC_STATEMENT .
-  methods GET_BLOCK
-    importing
-      !INDEX type SYTABIX
-    returning
-      value(BLOCK) type ref to ZIF_SCABSRC_BLOCK .
-  methods GET_BLOCKS
-    importing
-      !TYPE type SSTRUC-TYPE optional
-      !STMNT_TYPE type SSTRUC-STMNT_TYPE optional
-    returning
-      value(BLOCKS) type ref to ZIF_SCABSRC_BLOCKS .
-  methods GET_SOURCE_UNIT
-    importing
-      !INDEX type SYTABIX
-    returning
-      value(SOURCE_UNIT) type ref to ZIF_SCABSRC_SOURCE_UNIT .
-  methods GET_TOKENS_OF_LINE
-    importing
-      !INCLUDE type SYREPID
-      !LINE type NUMERIC
-    returning
-      value(TOKENS) type ref to ZIF_SCABSRC_TOKENS .
-protected section.
-private section.
+    METHODS constructor
+      IMPORTING
+        !i_program  TYPE syrepid OPTIONAL
+        !it_srcline TYPE string_table OPTIONAL .
+    METHODS get_token
+      IMPORTING
+        !index       TYPE sytabix
+      RETURNING
+        VALUE(token) TYPE REF TO zif_scabsrc_token .
+    METHODS get_tokens
+      RETURNING
+        VALUE(tokens) TYPE REF TO zif_scabsrc_tokens .
+    METHODS get_statement
+      IMPORTING
+        !index           TYPE sytabix
+      RETURNING
+        VALUE(statement) TYPE REF TO zif_scabsrc_statement .
+    METHODS get_statements
+      IMPORTING
+        type              TYPE zif_scabsrc_statement=>ty_type OPTIONAL
+        rng_type          TYPE zif_scabsrc_statement=>ty_rng_type OPTIONAL
+      RETURNING
+        VALUE(statements) TYPE REF TO zif_scabsrc_statements .
+    METHODS get_block
+      IMPORTING
+        !index       TYPE sytabix
+      RETURNING
+        VALUE(block) TYPE REF TO zif_scabsrc_block .
+    METHODS get_blocks
+      IMPORTING
+        type           TYPE zif_scabsrc_block=>ty_type OPTIONAL
+        stmnt_type     TYPE zif_scabsrc_block=>ty_stmnt_type OPTIONAL
+        rng_type       TYPE zif_scabsrc_block=>ty_rng_type OPTIONAL
+        rng_stmnt_type TYPE zif_scabsrc_block=>ty_rng_stmnt_type OPTIONAL
+      RETURNING
+        VALUE(blocks)  TYPE REF TO zif_scabsrc_blocks .
+    METHODS get_source_unit
+      IMPORTING
+        !index             TYPE sytabix
+      RETURNING
+        VALUE(source_unit) TYPE REF TO zif_scabsrc_source_unit .
+    METHODS get_source_units
+      RETURNING
+        VALUE(source_units) TYPE REF TO zif_scabsrc_source_units .
+    METHODS get_tokens_of_line
+      IMPORTING
+        !include      TYPE syrepid
+        !line         TYPE numeric
+      RETURNING
+        VALUE(tokens) TYPE REF TO zif_scabsrc_tokens .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 
-  types:
-    BEGIN OF TY_IS_STATEMENT_BY_FROM,
-              INDEX     TYPE SYTABIX,
-              FROM      TYPE SSTMNT-FROM,
-            END OF TY_IS_STATEMENT_BY_FROM .
+    TYPES:
+      BEGIN OF ty_is_statement_by_from,
+        index TYPE sytabix,
+        from  TYPE sstmnt-from,
+      END OF ty_is_statement_by_from .
 
-  data:
-    AIT_STATEMENT_BY_FROM TYPE SORTED TABLE OF TY_IS_STATEMENT_BY_FROM WITH UNIQUE KEY FROM .
+    DATA:
+      ait_statement_by_from TYPE SORTED TABLE OF ty_is_statement_by_from WITH UNIQUE KEY from .
 
-  methods CALCULATE_STATEMENT_BY_FROM .
+    METHODS calculate_statement_by_from .
 ENDCLASS.
 
 
 
-CLASS ZCL_SCABSRC IMPLEMENTATION.
+CLASS zcl_scabsrc IMPLEMENTATION.
 
 
-  method CALCULATE_STATEMENT_BY_FROM.
+  METHOD calculate_statement_by_from.
 
-    FIELD-SYMBOLS <LS_SSTMNT> TYPE SSTMNT.
-    DATA LS_STATEMENT_BY_FROM TYPE TY_IS_STATEMENT_BY_FROM.
+    FIELD-SYMBOLS <ls_sstmnt> TYPE sstmnt.
+    DATA ls_statement_by_from TYPE ty_is_statement_by_from.
 
-    LOOP AT LT_SSTMNT ASSIGNING <LS_SSTMNT>.
-      LS_STATEMENT_BY_FROM-INDEX = SY-TABIX.
-      LS_STATEMENT_BY_FROM-FROM  = <LS_SSTMNT>-FROM. "index token
-      INSERT LS_STATEMENT_BY_FROM INTO TABLE AIT_STATEMENT_BY_FROM.
+    LOOP AT lt_sstmnt ASSIGNING <ls_sstmnt>.
+      ls_statement_by_from-index = sy-tabix.
+      ls_statement_by_from-from  = <ls_sstmnt>-from. "index token
+      INSERT ls_statement_by_from INTO TABLE ait_statement_by_from.
     ENDLOOP.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method CONSTRUCTOR.
+  METHOD constructor.
 
-    DATA LT_SRCLINE     TYPE TABLE OF STRING.
+    DATA lt_srcline     TYPE TABLE OF string.
 
-    FIELD-SYMBOLS <LT_SRCLINE> TYPE STRING_TABLE.
-    IF IT_SRCLINE IS INITIAL AND I_PROGRAM IS INITIAL.
+    FIELD-SYMBOLS <lt_srcline> TYPE string_table.
+    IF it_srcline IS INITIAL AND i_program IS INITIAL.
       RETURN.
     ENDIF.
-    IF IT_SRCLINE IS INITIAL.
-      READ REPORT I_PROGRAM INTO LT_SRCLINE.
-      ASSIGN LT_SRCLINE TO <LT_SRCLINE>.
+    IF it_srcline IS INITIAL.
+      READ REPORT i_program INTO lt_srcline.
+      ASSIGN lt_srcline TO <lt_srcline>.
     ELSE.
-      ASSIGN IT_SRCLINE TO <LT_SRCLINE>.
+      ASSIGN it_srcline TO <lt_srcline>.
     ENDIF.
-    SCAN ABAP-SOURCE <LT_SRCLINE>
-          TOKENS INTO LT_STOKESX
-          STATEMENTS INTO LT_SSTMNT
-          STRUCTURES INTO LT_SSTRUC
-          INCLUDE PROGRAM FROM I_PROGRAM
-          FRAME PROGRAM FROM I_PROGRAM
+    SCAN ABAP-SOURCE <lt_srcline>
+          TOKENS INTO lt_stokesx
+          STATEMENTS INTO lt_sstmnt
+          STRUCTURES INTO lt_sstruc
+          INCLUDE PROGRAM FROM i_program
+          FRAME PROGRAM FROM i_program
           WITH TYPE-POOLS
           WITH LIST TOKENIZATION
           PRESERVING IDENTIFIER ESCAPING
 *     WITH EXPLICIT ENHANCEMENTS "interdit avec WITH ANALYSIS
-          ENHANCEMENTS INTO LT_SENHMT
+          ENHANCEMENTS INTO lt_senhmt
           WITH ANALYSIS
           WITH COMMENTS
           WITH INCLUDES
-          LEVELS INTO LT_SLEVEL.
+          LEVELS INTO lt_slevel.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method GET_BLOCK.
+  METHOD get_block.
 
-    READ TABLE LT_SSTRUC INDEX INDEX TRANSPORTING NO FIELDS.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT BLOCK TYPE ZCL_SCABSRC_BLOCK
+    READ TABLE lt_sstruc INDEX index TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      CREATE OBJECT block TYPE zcl_scabsrc_block
         EXPORTING
-          SCABSRC = ME
-          INDEX   = INDEX.
+          scabsrc = me
+          index   = index.
     ENDIF.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method GET_BLOCKS.
+  METHOD get_blocks.
 
-    DATA LO_BLOCK TYPE REF TO ZIF_SCABSRC_BLOCK.
-    DATA LT_RNG_TYPE        TYPE RANGE OF SSTRUC-TYPE.
-    DATA LS_RNG_TYPE        LIKE LINE OF LT_RNG_TYPE.
-    DATA LT_RNG_STMNT_TYPE  TYPE RANGE OF SSTRUC-STMNT_TYPE.
-    DATA LS_RNG_STMNT_TYPE  LIKE LINE OF LT_RNG_STMNT_TYPE.
-    FIELD-SYMBOLS <LS_SSTRUC> TYPE SSTRUC.
-    DATA INDEX              TYPE SYINDEX.
-    DATA PASSED_THROUGH     TYPE ABAP_BOOL.
+    blocks = zcl_scabsrc_blocks=>create(
+        scabsrc        = me
+        type           = type
+        stmnt_type     = stmnt_type
+        rng_type       = rng_type
+        rng_stmnt_type = rng_stmnt_type ).
 
-    IF TYPE IS NOT SUPPLIED AND STMNT_TYPE IS NOT SUPPLIED.
-      CREATE OBJECT BLOCKS TYPE ZCL_SCABSRC_BLOCKS
+*    DATA lo_block TYPE REF TO zif_scabsrc_block.
+*    DATA lt_rng_type        TYPE RANGE OF sstruc-type.
+*    DATA ls_rng_type        LIKE LINE OF lt_rng_type.
+*    DATA lt_rng_stmnt_type  TYPE RANGE OF sstruc-stmnt_type.
+*    DATA ls_rng_stmnt_type  LIKE LINE OF lt_rng_stmnt_type.
+*    FIELD-SYMBOLS <ls_sstruc> TYPE sstruc.
+*    DATA index              TYPE syindex.
+*    DATA passed_through     TYPE abap_bool.
+*
+*    IF type IS NOT SUPPLIED AND stmnt_type IS NOT SUPPLIED.
+*      CREATE OBJECT blocks TYPE zcl_scabsrc_blocks
+*        EXPORTING
+*          scabsrc = me
+*          from    = 1
+*          to      = lines( lt_sstruc ).
+*    ELSE.
+*      IF type IS SUPPLIED.
+*        CLEAR ls_rng_type.
+*        ls_rng_type-sign    = 'I'.
+*        ls_rng_type-option  = 'EQ'.
+*        ls_rng_type-low     = type.
+*        APPEND ls_rng_type TO lt_rng_type.
+*      ENDIF.
+*      IF stmnt_type IS SUPPLIED.
+*        CLEAR ls_rng_stmnt_type.
+*        ls_rng_stmnt_type-sign    = 'I'.
+*        ls_rng_stmnt_type-option  = 'EQ'.
+*        ls_rng_stmnt_type-low     = stmnt_type.
+*        APPEND ls_rng_stmnt_type TO lt_rng_stmnt_type.
+*      ENDIF.
+*      LOOP AT lt_sstruc ASSIGNING <ls_sstruc>
+*            WHERE type       IN lt_rng_type
+*              AND stmnt_type IN lt_rng_stmnt_type.
+*        index = sy-tabix.
+*        IF passed_through IS INITIAL.
+*          CREATE OBJECT blocks TYPE zcl_scabsrc_blocks
+*            EXPORTING
+*              scabsrc = me.
+*          passed_through = abap_true.
+*        ENDIF.
+*        blocks->add_block( index ).
+*      ENDLOOP.
+*    ENDIF.
+
+  ENDMETHOD.
+
+
+  METHOD get_source_unit.
+
+    READ TABLE lt_slevel INDEX index TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      CREATE OBJECT source_unit TYPE zcl_scabsrc_source_unit
         EXPORTING
-          SCABSRC = ME
-          FROM    = 1
-          TO      = LINES( LT_SSTRUC ).
-    ELSE.
-      IF TYPE IS SUPPLIED.
-        CLEAR LS_RNG_TYPE.
-        LS_RNG_TYPE-SIGN    = 'I'.
-        LS_RNG_TYPE-OPTION  = 'EQ'.
-        LS_RNG_TYPE-LOW     = TYPE.
-        APPEND LS_RNG_TYPE TO LT_RNG_TYPE.
-      ENDIF.
-      IF STMNT_TYPE IS SUPPLIED.
-        CLEAR LS_RNG_STMNT_TYPE.
-        LS_RNG_STMNT_TYPE-SIGN    = 'I'.
-        LS_RNG_STMNT_TYPE-OPTION  = 'EQ'.
-        LS_RNG_STMNT_TYPE-LOW     = STMNT_TYPE.
-        APPEND LS_RNG_STMNT_TYPE TO LT_RNG_STMNT_TYPE.
-      ENDIF.
-      LOOP AT LT_SSTRUC ASSIGNING <LS_SSTRUC>
-            WHERE TYPE       IN LT_RNG_TYPE
-              AND STMNT_TYPE IN LT_RNG_STMNT_TYPE.
-        INDEX = SY-TABIX.
-        IF PASSED_THROUGH IS INITIAL.
-          CREATE OBJECT BLOCKS TYPE ZCL_SCABSRC_BLOCKS
-            EXPORTING
-              SCABSRC = ME.
-          PASSED_THROUGH = ABAP_TRUE.
-        ENDIF.
-        BLOCKS->ADD_BLOCK( INDEX ).
-      ENDLOOP.
+          scabsrc = me
+          index   = index.
     ENDIF.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method GET_SOURCE_UNIT.
+  METHOD get_statement.
 
-    READ TABLE LT_SLEVEL INDEX INDEX TRANSPORTING NO FIELDS.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT SOURCE_UNIT TYPE ZCL_SCABSRC_SOURCE_UNIT
+    READ TABLE lt_sstmnt INDEX index TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      CREATE OBJECT statement TYPE zcl_scabsrc_statement
         EXPORTING
-          SCABSRC = ME
-          INDEX   = INDEX.
+          scabsrc = me
+          index   = index.
     ENDIF.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method GET_STATEMENT.
+  METHOD get_token.
 
-    READ TABLE LT_SSTMNT INDEX INDEX TRANSPORTING NO FIELDS.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT STATEMENT TYPE ZCL_SCABSRC_STATEMENT
+    READ TABLE lt_stokesx INDEX index TRANSPORTING NO FIELDS.
+    IF sy-subrc = 0.
+      CREATE OBJECT token TYPE zcl_scabsrc_token
         EXPORTING
-          SCABSRC = ME
-          INDEX   = INDEX.
+          scabsrc = me
+          index   = index.
     ENDIF.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method GET_TOKEN.
+  METHOD get_tokens_of_line.
 
-    READ TABLE LT_STOKESX INDEX INDEX TRANSPORTING NO FIELDS.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT TOKEN TYPE ZCL_SCABSRC_TOKEN
-        EXPORTING
-          SCABSRC = ME
-          INDEX   = INDEX.
-    ENDIF.
-
-  endmethod.
-
-
-  method GET_TOKENS_OF_LINE.
-
+    RAISE EXCEPTION TYPE zcx_scabsrc_todo.
 *    FIELD-SYMBOLS <ls_source_unit2> TYPE ty_us_source_unit.
 *    FIELD-SYMBOLS <ls_source_unit> TYPE ty_is_source_unit.
 *    FIELD-SYMBOLS <ls_token> TYPE ty_us_token.
@@ -241,5 +265,25 @@ CLASS ZCL_SCABSRC IMPLEMENTATION.
 *      ENDIF.
 *    ENDIF.
 
-  endmethod.
+  ENDMETHOD.
+
+  METHOD get_statements.
+
+    statements = zcl_scabsrc_statements=>create(
+        scabsrc = me ).
+
+  ENDMETHOD.
+
+  METHOD get_source_units.
+
+    CREATE OBJECT source_units TYPE zcl_scabsrc_source_units
+      EXPORTING
+        scabsrc = me.
+
+  ENDMETHOD.
+
+  METHOD get_tokens.
+
+  ENDMETHOD.
+
 ENDCLASS.

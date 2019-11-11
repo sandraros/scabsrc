@@ -1,38 +1,44 @@
-class ZCL_SCABSRC_BLOCK definition
-  public
-  create public .
+"! <p class="shorttext synchronized" lang="en"></p>
+"!
+CLASS zcl_scabsrc_block DEFINITION
+  PUBLIC
+  CREATE PRIVATE
+  GLOBAL FRIENDS zcl_scabsrc zcl_scabsrc_blocks zcl_scabsrc_statement zcl_scabsrc_statements.
 
-public section.
+  PUBLIC SECTION.
 
-  interfaces ZIF_SCABSRC_BLOCK .
+    INTERFACES zif_scabsrc_block .
 
-  aliases GET_ALL_FIELDS
-    for ZIF_SCABSRC_BLOCK~GET_ALL_FIELDS .
-  aliases GET_CHILD_BLOCKS
-    for ZIF_SCABSRC_BLOCK~GET_CHILD_BLOCKS .
-  aliases GET_FIRST_STATEMENT
-    for ZIF_SCABSRC_BLOCK~GET_FIRST_STATEMENT .
-  aliases GET_INDEX
-    for ZIF_SCABSRC_BLOCK~GET_INDEX .
-  aliases GET_PARENT_BLOCK
-    for ZIF_SCABSRC_BLOCK~GET_PARENT_BLOCK .
-  aliases GET_STATEMENTS
-    for ZIF_SCABSRC_BLOCK~GET_STATEMENTS .
-  aliases GET_STMNT_TYPE
-    for ZIF_SCABSRC_BLOCK~GET_STMNT_TYPE .
-  aliases GET_TYPE
-    for ZIF_SCABSRC_BLOCK~GET_TYPE .
+    ALIASES get_all_fields
+      FOR zif_scabsrc_block~get_all_fields .
+    ALIASES get_child_blocks
+      FOR zif_scabsrc_block~get_child_blocks .
+    ALIASES get_first_statement
+      FOR zif_scabsrc_block~get_first_statement .
+    ALIASES get_index
+      FOR zif_scabsrc_block~get_index .
+    ALIASES get_parent_block
+      FOR zif_scabsrc_block~get_parent_block .
+    ALIASES get_statements
+      FOR zif_scabsrc_block~get_statements .
+    ALIASES get_stmnt_type
+      FOR zif_scabsrc_block~get_stmnt_type .
+    ALIASES get_type
+      FOR zif_scabsrc_block~get_type .
+    ALIASES scabsrc
+      FOR zif_scabsrc_block~scabsrc .
 
-  methods CONSTRUCTOR
-    importing
-      !SCABSRC type ref to ZCL_SCABSRC
-      !INDEX type I .
-protected section.
-private section.
+    METHODS constructor
+      IMPORTING
+        !scabsrc TYPE REF TO zcl_scabsrc
+        !index   TYPE i .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 
-  data INDEX type SYTABIX .
-  data SCABSRC type ref to ZCL_SCABSRC .
-  data TEMP type SSTRUC .
+    DATA index TYPE sytabix .
+*    DATA scabsrc TYPE REF TO zcl_scabsrc .
+    DATA temp TYPE sstruc .
+
 ENDCLASS.
 
 
@@ -40,101 +46,92 @@ ENDCLASS.
 CLASS ZCL_SCABSRC_BLOCK IMPLEMENTATION.
 
 
-  method CONSTRUCTOR.
+  METHOD constructor.
 
-    ME->INDEX = INDEX.
-    ME->SCABSRC = SCABSRC.
+    me->index = index.
+    me->scabsrc = scabsrc.
 
-  endmethod.
-
-
-  method ZIF_SCABSRC_BLOCK~GET_ALL_FIELDS.
-
-    READ TABLE SCABSRC->LT_SSTRUC INDEX INDEX INTO BLOCK.
-
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_BLOCK~GET_CHILD_BLOCKS.
+  METHOD zif_scabsrc_block~get_all_fields.
 
-    FIELD-SYMBOLS <LS_SSTRUC> TYPE SSTRUC.
-    READ TABLE SCABSRC->LT_SSTRUC INDEX INDEX ASSIGNING <LS_SSTRUC>.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT BLOCKS TYPE ZCL_SCABSRC_BLOCKS
+    READ TABLE scabsrc->lt_sstruc INDEX index INTO block.
+
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_block~get_child_blocks.
+
+    blocks = zcl_scabsrc_blocks=>create_for_children_blocks( me ).
+
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_block~get_first_statement.
+
+    FIELD-SYMBOLS <ls_sstruc> TYPE sstruc.
+    READ TABLE scabsrc->lt_sstruc INDEX index ASSIGNING <ls_sstruc>.
+    IF sy-subrc = 0.
+      CREATE OBJECT statement TYPE zcl_scabsrc_statement
         EXPORTING
-          SCABSRC = SCABSRC
-          FROM    = <LS_SSTRUC>-STRUC_FROM
-          TO      = <LS_SSTRUC>-STRUC_TO.
+          scabsrc = scabsrc
+          index   = <ls_sstruc>-stmnt_from.
     ENDIF.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_BLOCK~GET_FIRST_STATEMENT.
+  METHOD zif_scabsrc_block~get_index.
 
-    FIELD-SYMBOLS <LS_SSTRUC> TYPE SSTRUC.
-    READ TABLE SCABSRC->LT_SSTRUC INDEX INDEX ASSIGNING <LS_SSTRUC>.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT STATEMENT TYPE ZCL_SCABSRC_STATEMENT
+    index = me->index.
+
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_block~get_parent_block.
+
+    FIELD-SYMBOLS <ls_sstruc> TYPE sstruc.
+    READ TABLE scabsrc->lt_sstruc INDEX index ASSIGNING <ls_sstruc>.
+    IF sy-subrc = 0.
+      CREATE OBJECT block TYPE zcl_scabsrc_block
         EXPORTING
-          SCABSRC = SCABSRC
-          INDEX   = <LS_SSTRUC>-STMNT_FROM.
+          scabsrc = scabsrc
+          index   = <ls_sstruc>-back.
     ENDIF.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_BLOCK~GET_INDEX.
+  METHOD zif_scabsrc_block~get_statements.
 
-    INDEX = ME->INDEX.
+*    FIELD-SYMBOLS <ls_sstruc> TYPE sstruc.
+*    READ TABLE scabsrc->lt_sstruc INDEX index ASSIGNING <ls_sstruc>.
+*    IF sy-subrc = 0.
+    statements = zcl_scabsrc_statements=>create_for_block(
+        scabsrc = scabsrc
+        block   = me ).
+*    ENDIF.
 
-  endmethod.
-
-
-  method ZIF_SCABSRC_BLOCK~GET_PARENT_BLOCK.
-
-    FIELD-SYMBOLS <LS_SSTRUC> TYPE SSTRUC.
-    READ TABLE SCABSRC->LT_SSTRUC INDEX INDEX ASSIGNING <LS_SSTRUC>.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT BLOCK TYPE ZCL_SCABSRC_BLOCK
-        EXPORTING
-          SCABSRC = SCABSRC
-          INDEX   = <LS_SSTRUC>-BACK.
-    ENDIF.
-
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_BLOCK~GET_STATEMENTS.
+  METHOD zif_scabsrc_block~get_stmnt_type.
 
-    FIELD-SYMBOLS <LS_SSTRUC> TYPE SSTRUC.
-    READ TABLE SCABSRC->LT_SSTRUC INDEX INDEX ASSIGNING <LS_SSTRUC>.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT STATEMENTS TYPE ZCL_SCABSRC_STATEMENTS
-        EXPORTING
-          SCABSRC = SCABSRC
-          FROM    = <LS_SSTRUC>-STMNT_FROM
-          TO      = <LS_SSTRUC>-STMNT_TO.
-    ENDIF.
+*    READ TABLE scabsrc->lt_sstruc INDEX index INTO temp TRANSPORTING stmnt_type.
+*    stmnt_type = temp-stmnt_type.
+    stmnt_type = scabsrc->lt_sstruc[ index ]-stmnt_type.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_BLOCK~GET_STMNT_TYPE.
+  METHOD zif_scabsrc_block~get_type.
 
-    READ TABLE SCABSRC->LT_SSTRUC INDEX INDEX INTO TEMP TRANSPORTING STMNT_TYPE.
-    STMNT_TYPE = TEMP-STMNT_TYPE.
+*    READ TABLE scabsrc->lt_sstruc INDEX index INTO temp TRANSPORTING type.
+*    type = temp-type.
+    type = scabsrc->lt_sstruc[ index ]-type.
 
-  endmethod.
-
-
-  method ZIF_SCABSRC_BLOCK~GET_TYPE.
-
-    READ TABLE SCABSRC->LT_SSTRUC INDEX INDEX INTO TEMP TRANSPORTING TYPE.
-    TYPE = TEMP-TYPE.
-
-  endmethod.
-
+  ENDMETHOD.
 
 
 ENDCLASS.

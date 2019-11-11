@@ -1,15 +1,18 @@
-interface ZIF_SCABSRC_BLOCKS
-  public .
+"! <p class="shorttext synchronized" lang="en"></p>
+"!
+INTERFACE zif_scabsrc_blocks
+  PUBLIC .
 
-
-  methods RESET .
-  methods GET_NEXT
-    returning
-      value(BLOCK) type ref to ZIF_SCABSRC_BLOCK .
-  methods GET_FIRST_STATEMENTS
-    returning
-      value(STATEMENTS) type ref to ZIF_SCABSRC_STATEMENTS .
-  methods ADD_BLOCK
-    importing
-      !INDEX type SYTABIX .
-endinterface.
+  TYPES ty_statements TYPE STANDARD TABLE OF REF TO zif_scabsrc_statement WITH EMPTY KEY.
+  METHODS reset .
+  METHODS get_next
+    RETURNING
+      VALUE(block) TYPE REF TO zif_scabsrc_block .
+  METHODS get_first_statement_each_block
+    RETURNING
+      VALUE(statements) TYPE ty_statements .
+  DATA count TYPE i READ-ONLY.
+*  METHODS add_block
+*    IMPORTING
+*      !index TYPE sytabix .
+ENDINTERFACE.

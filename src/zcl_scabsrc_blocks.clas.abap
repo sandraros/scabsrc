@@ -1,139 +1,172 @@
-class ZCL_SCABSRC_BLOCKS definition
-  public
-  create public .
+"! <p class="shorttext synchronized" lang="en"></p>
+"!
+CLASS zcl_scabsrc_blocks DEFINITION
+  PUBLIC
+  CREATE PRIVATE .
 
-public section.
+  PUBLIC SECTION.
 
-  interfaces ZIF_SCABSRC_BLOCKS .
+    INTERFACES zif_scabsrc_blocks .
 
-  aliases ADD_BLOCK
-    for ZIF_SCABSRC_BLOCKS~ADD_BLOCK .
-  aliases GET_FIRST_STATEMENTS
-    for ZIF_SCABSRC_BLOCKS~GET_FIRST_STATEMENTS .
-  aliases GET_NEXT
-    for ZIF_SCABSRC_BLOCKS~GET_NEXT .
-  aliases RESET
-    for ZIF_SCABSRC_BLOCKS~RESET .
+    ALIASES get_first_statement_each_block
+      FOR zif_scabsrc_blocks~get_first_statement_each_block .
+    ALIASES get_next
+      FOR zif_scabsrc_blocks~get_next .
+    ALIASES reset
+      FOR zif_scabsrc_blocks~reset .
+    ALIASES count
+      FOR zif_scabsrc_blocks~count .
 
-  methods CONSTRUCTOR
-    importing
-      !SCABSRC type ref to ZCL_SCABSRC
-      !FROM type I default 0
-      !TO type I default 0 .
-protected section.
-private section.
+    CLASS-METHODS create_for_children_blocks
+      IMPORTING
+        block         TYPE REF TO zif_scabsrc_block
+      RETURNING
+        VALUE(blocks) TYPE REF TO zif_scabsrc_blocks.
 
-  types:
-    BEGIN OF TY_IS_RANGE,
-              FROM  TYPE SYTABIX,
-              TO    TYPE SYTABIX,
-            END OF TY_IS_RANGE .
+    CLASS-METHODS create
+      IMPORTING
+        scabsrc        TYPE REF TO zcl_scabsrc
+        type           TYPE zif_scabsrc_block=>ty_type OPTIONAL
+        stmnt_type     TYPE zif_scabsrc_block=>ty_stmnt_type OPTIONAL
+        rng_type       TYPE zif_scabsrc_block=>ty_rng_type OPTIONAL
+        rng_stmnt_type TYPE zif_scabsrc_block=>ty_rng_stmnt_type OPTIONAL
+      RETURNING
+        VALUE(blocks)  TYPE REF TO zif_scabsrc_blocks.
 
-  data FROM type SYTABIX .
-  data TO type SYTABIX .
-  data NEXT type SYTABIX .
-  data NEXT2 type SYTABIX .
-  data:
-    TAB_RANGE TYPE TABLE OF TY_IS_RANGE .
-  data SCABSRC type ref to ZCL_SCABSRC .
-  class-data TEMP type SSTRUC .
+    TYPES ty_rng_block_index TYPE RANGE OF sytabix.
+
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_is_range,
+        from TYPE sytabix,
+        to   TYPE sytabix,
+      END OF ty_is_range,
+      ty_it_range TYPE STANDARD TABLE OF ty_is_range WITH EMPTY KEY.
+
+    METHODS constructor
+      IMPORTING
+        !scabsrc   TYPE REF TO zcl_scabsrc
+        !tab_range TYPE ty_it_range.
+
+    DATA next TYPE sytabix .
+    DATA next2 TYPE sytabix .
+    DATA tab_range TYPE ty_it_range .
+    DATA scabsrc TYPE REF TO zcl_scabsrc .
+    CLASS-DATA temp TYPE sstruc .
 ENDCLASS.
 
 
 
-CLASS ZCL_SCABSRC_BLOCKS IMPLEMENTATION.
+CLASS zcl_scabsrc_blocks IMPLEMENTATION.
 
 
-  method ZIF_SCABSRC_BLOCKS~ADD_BLOCK.
+  METHOD constructor.
 
-    DATA RANGE TYPE TY_IS_RANGE.
-    RANGE-FROM  = INDEX.
-    RANGE-TO    = INDEX.
-    APPEND RANGE TO TAB_RANGE.
+    me->tab_range = tab_range.
+    me->scabsrc = scabsrc.
+    me->count = REDUCE #( INIT i = 0 FOR line IN tab_range NEXT i = i + line-to - line-from + 1 ).
 
-  endmethod.
-
-
-  method CONSTRUCTOR.
-
-    ME->FROM = FROM.
-    ME->TO   = TO.
-    ME->SCABSRC = SCABSRC.
-
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_BLOCKS~GET_FIRST_STATEMENTS.
+  METHOD zif_scabsrc_blocks~get_first_statement_each_block.
 
-    DATA LO_BLOCK TYPE REF TO ZIF_SCABSRC_BLOCK.
-    DATA LO_STATEMENT TYPE REF TO ZIF_SCABSRC_STATEMENT.
+    DATA lo_block TYPE REF TO zif_scabsrc_block.
+    DATA lo_statement TYPE REF TO zif_scabsrc_statement.
 
-    RESET( ).
-    LO_BLOCK = GET_NEXT( ).
-    IF LO_BLOCK IS BOUND.
-      CREATE OBJECT STATEMENTS TYPE ZCL_SCABSRC_STATEMENTS
-            EXPORTING
-              SCABSRC = SCABSRC.
-    ENDIF.
-    WHILE LO_BLOCK IS BOUND.
-      LO_STATEMENT = LO_BLOCK->GET_FIRST_STATEMENT( ).
-      STATEMENTS->ADD_STATEMENT( LO_STATEMENT->GET_INDEX( ) ).
-
-      LO_BLOCK = GET_NEXT( ).
+    reset( ).
+    lo_block = get_next( ).
+    WHILE lo_block IS BOUND.
+      lo_statement = lo_block->get_first_statement( ).
+      APPEND lo_statement TO statements.
+      lo_block = get_next( ).
     ENDWHILE.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_BLOCKS~GET_NEXT.
+  METHOD zif_scabsrc_blocks~get_next.
 
-    FIELD-SYMBOLS <RANGE> TYPE TY_IS_RANGE.
-    IF FROM >= 1.
-      IF NEXT = 0.
-        NEXT = FROM.
+    FIELD-SYMBOLS <range> TYPE ty_is_range.
+
+    IF next = 0.
+      next = 1.
+      next2 = 0.
+    ENDIF.
+    DO.
+      READ TABLE tab_range ASSIGNING <range> INDEX next.
+      IF sy-subrc <> 0.
+        EXIT.
       ENDIF.
-      IF NEXT <= TO.
-        CREATE OBJECT BLOCK TYPE ZCL_SCABSRC_BLOCK
+      IF next2 = 0.
+        next2 = <range>-from.
+      ENDIF.
+      IF next2 <= <range>-to.
+        CREATE OBJECT block TYPE zcl_scabsrc_block
           EXPORTING
-            SCABSRC = SCABSRC
-            INDEX   = NEXT.
-        ADD 1 TO NEXT.
+            scabsrc = scabsrc
+            index   = next2.
+        ADD 1 TO next2.
+        EXIT.
+      ELSE.
+        ADD 1 TO next.
+        next2 = 0.
       ENDIF.
+    ENDDO.
+
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_blocks~reset.
+
+    next = 0.
+
+  ENDMETHOD.
+
+
+  METHOD create.
+
+    DATA: tab_range TYPE ty_it_range.
+
+    IF type IS INITIAL AND stmnt_type IS INITIAL
+    AND rng_type IS INITIAL AND rng_stmnt_type IS INITIAL.
+
+      tab_range = VALUE #( ( from = 1 to = lines( scabsrc->lt_sstruc ) ) ).
+
     ELSE.
-      IF NEXT = 0.
-        NEXT = 1.
-        NEXT2 = 0.
-      ENDIF.
-      DO.
-        READ TABLE TAB_RANGE ASSIGNING <RANGE> INDEX NEXT.
-        IF SY-SUBRC <> 0.
-          EXIT.
-        ENDIF.
-        IF NEXT2 = 0.
-          NEXT2 = <RANGE>-FROM.
-        ENDIF.
-        IF NEXT2 <= <RANGE>-TO.
-          CREATE OBJECT BLOCK TYPE ZCL_SCABSRC_BLOCK
-            EXPORTING
-              SCABSRC = SCABSRC
-              INDEX   = NEXT2.
-          ADD 1 TO NEXT2.
-          EXIT.
-        ELSE.
-          ADD 1 TO NEXT.
-          NEXT2 = 0.
-        ENDIF.
-      ENDDO.
+
+      DATA(sng_rng_type) = COND zif_scabsrc_block=>ty_rng_type(
+        WHEN type IS NOT INITIAL THEN VALUE #( ( sign = 'I' option = 'EQ' low = type ) ) ).
+      DATA(sng_rng_stmnt_type) = COND zif_scabsrc_block=>ty_rng_stmnt_type(
+        WHEN stmnt_type IS NOT INITIAL THEN VALUE #( ( sign = 'I' option = 'EQ' low = stmnt_type ) ) ).
+
+      LOOP AT scabsrc->lt_sstruc ASSIGNING FIELD-SYMBOL(<ls_sstruc>)
+            WHERE type       IN rng_type
+              AND type       IN sng_rng_type
+              AND stmnt_type IN rng_stmnt_type
+              AND stmnt_type IN sng_rng_stmnt_type.
+        tab_range = VALUE #( BASE tab_range ( from = sy-tabix to = sy-tabix ) ).
+      ENDLOOP.
+
     ENDIF.
 
-  endmethod.
+    blocks = NEW zcl_scabsrc_blocks( scabsrc = scabsrc tab_range = tab_range ).
 
+  ENDMETHOD.
 
-  method ZIF_SCABSRC_BLOCKS~RESET.
+  METHOD create_for_children_blocks.
 
-    NEXT = 0.
+    FIELD-SYMBOLS <ls_sstruc> TYPE sstruc.
+    READ TABLE block->scabsrc->lt_sstruc INDEX block->get_index( ) ASSIGNING <ls_sstruc>.
+    ASSERT sy-subrc = 0.
 
-  endmethod.
+    CREATE OBJECT blocks TYPE zcl_scabsrc_blocks
+      EXPORTING
+        scabsrc   = block->scabsrc
+        tab_range = VALUE #( ( from = <ls_sstruc>-struc_from to = <ls_sstruc>-struc_to ) ).
 
+  ENDMETHOD.
 
 ENDCLASS.

@@ -1,163 +1,180 @@
-class ZCL_SCABSRC_STATEMENTS definition
-  public
-  create public .
+"! <p class="shorttext synchronized" lang="en"></p>
+"!
+CLASS zcl_scabsrc_statements DEFINITION
+  PUBLIC
+  CREATE PRIVATE .
 
-public section.
+  PUBLIC SECTION.
 
-  interfaces ZIF_SCABSRC_STATEMENTS .
+    INTERFACES zif_scabsrc_statements .
 
-  aliases ADD_STATEMENT
-    for ZIF_SCABSRC_STATEMENTS~ADD_STATEMENT .
-  aliases ADD_STATEMENTS
-    for ZIF_SCABSRC_STATEMENTS~ADD_STATEMENTS .
-  aliases FULL_TEXT_SEARCH
-    for ZIF_SCABSRC_STATEMENTS~FULL_TEXT_SEARCH .
-  aliases GET_NEXT
-    for ZIF_SCABSRC_STATEMENTS~GET_NEXT .
+    ALIASES full_text_search
+      FOR zif_scabsrc_statements~full_text_search .
+    ALIASES get_next
+      FOR zif_scabsrc_statements~get_next .
+    ALIASES count
+      FOR zif_scabsrc_statements~count .
 
-  methods CONSTRUCTOR
-    importing
-      !SCABSRC type ref to ZCL_SCABSRC
-      !FROM type I default 0
-      !TO type I default 0 .
-protected section.
-private section.
+    CLASS-METHODS create
+      IMPORTING
+        scabsrc           TYPE REF TO zcl_scabsrc
+        type              TYPE zif_scabsrc_statement=>ty_type OPTIONAL
+        rng_type          TYPE zif_scabsrc_statement=>ty_rng_type OPTIONAL
+      RETURNING
+        VALUE(statements) TYPE REF TO zif_scabsrc_statements.
 
-  types:
-    BEGIN OF TY_IS_RANGE,
-              FROM  TYPE SYTABIX,
-              TO    TYPE SYTABIX,
-            END OF TY_IS_RANGE .
+    CLASS-METHODS create_for_block
+      IMPORTING
+        scabsrc           TYPE REF TO zcl_scabsrc
+        block             TYPE REF TO zcl_scabsrc_block
+      RETURNING
+        VALUE(statements) TYPE REF TO zif_scabsrc_statements.
 
-  data FROM type SYTABIX .
-  data TO type SYTABIX .
-  data NEXT type SYTABIX .
-  data NEXT2 type SYTABIX .
-  data:
-    TAB_RANGE TYPE TABLE OF TY_IS_RANGE .
-  data SCABSRC type ref to ZCL_SCABSRC .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
+
+    TYPES:
+      BEGIN OF ty_is_range,
+        from TYPE sytabix,
+        to   TYPE sytabix,
+      END OF ty_is_range,
+      ty_it_range TYPE STANDARD TABLE OF ty_is_range WITH EMPTY KEY.
+
+    METHODS constructor
+      IMPORTING
+        !scabsrc   TYPE REF TO zcl_scabsrc
+        !tab_range TYPE ty_it_range.
+
+    DATA next TYPE sytabix .
+    DATA next2 TYPE sytabix .
+    DATA tab_range TYPE ty_it_range .
+    DATA scabsrc TYPE REF TO zcl_scabsrc .
 ENDCLASS.
 
 
 
-CLASS ZCL_SCABSRC_STATEMENTS IMPLEMENTATION.
+CLASS zcl_scabsrc_statements IMPLEMENTATION.
 
 
-  method ZIF_SCABSRC_STATEMENTS~ADD_STATEMENT.
+  METHOD create.
 
-    DATA RANGE TYPE TY_IS_RANGE.
-    RANGE-FROM  = INDEX.
-    RANGE-TO    = INDEX.
-    APPEND RANGE TO TAB_RANGE.
+    DATA: tab_range TYPE ty_it_range.
 
-  endmethod.
+    IF type IS INITIAL AND rng_type IS INITIAL.
 
+      tab_range = VALUE #( ( from = 1 to = lines( scabsrc->lt_sstmnt ) ) ).
 
-  method ZIF_SCABSRC_STATEMENTS~ADD_STATEMENTS.
+    ELSE.
 
-    DATA RANGE TYPE TY_IS_RANGE.
-    RANGE-FROM  = FROM.
-    RANGE-TO    = TO.
-    APPEND RANGE TO TAB_RANGE.
+      DATA(sng_rng_type) = COND zif_scabsrc_statement=>ty_rng_type(
+        WHEN type IS NOT INITIAL THEN VALUE #( ( sign = 'I' option = 'EQ' low = type ) ) ).
 
-  endmethod.
+      LOOP AT scabsrc->lt_sstmnt TRANSPORTING NO FIELDS
+            WHERE type       IN rng_type
+              AND type       IN sng_rng_type.
+        tab_range = VALUE #( BASE tab_range ( from = sy-tabix to = sy-tabix ) ).
+      ENDLOOP.
 
+    ENDIF.
 
-  method CONSTRUCTOR.
+    statements = NEW zcl_scabsrc_statements( scabsrc = scabsrc tab_range = tab_range ).
 
-    ME->FROM = FROM.
-    ME->TO   = TO.
-    ME->NEXT = 0.
-    ME->SCABSRC = SCABSRC.
-
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_STATEMENTS~FULL_TEXT_SEARCH.
+  METHOD constructor.
 
-    DATA LO_STATEMENT TYPE REF TO ZIF_SCABSRC_STATEMENT.
-    DATA INDEX TYPE SYTABIX.
-    DATA FULL_STATEMENT TYPE STRING.
-    DATA TAB_STMNT_INDEX TYPE TABLE OF SYTABIX.
-    DATA TAB_FULL_TEXT TYPE TABLE OF STRING.
-    DATA LS_SSTMNT TYPE SSTMNT.
-    FIELD-SYMBOLS <LS_STOKESX> TYPE STOKESX.
-    DATA LT_MATCH TYPE MATCH_RESULT_TAB.
-    FIELD-SYMBOLS <LS_MATCH> TYPE MATCH_RESULT.
+    me->tab_range = tab_range.
+    me->scabsrc = scabsrc.
+    me->count = REDUCE #( INIT i = 0 FOR line IN tab_range NEXT i = i + line-to - line-from + 1 ).
+    me->next = 0.
 
-    LO_STATEMENT = GET_NEXT( ).
-    WHILE LO_STATEMENT IS BOUND.
-      INDEX = LO_STATEMENT->GET_INDEX( ).
-      LS_SSTMNT = LO_STATEMENT->GET_ALL_FIELDS( ).
-      READ TABLE TAB_STMNT_INDEX WITH KEY TABLE_LINE = INDEX TRANSPORTING NO FIELDS.
-      IF SY-SUBRC <> 0.
-        APPEND INDEX TO TAB_STMNT_INDEX.
-        CLEAR FULL_STATEMENT.
-        LOOP AT SCABSRC->LT_STOKESX ASSIGNING <LS_STOKESX>
-              FROM LS_SSTMNT-FROM
-              TO   LS_SSTMNT-TO.
-          IF FULL_STATEMENT IS INITIAL.
-            FULL_STATEMENT = <LS_STOKESX>-STR.
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_statements~full_text_search.
+
+    DATA lo_statement TYPE REF TO zif_scabsrc_statement.
+    DATA index TYPE sytabix.
+    DATA full_statement TYPE string.
+    DATA tab_stmnt_index TYPE TABLE OF sytabix.
+    DATA tab_full_text TYPE TABLE OF string.
+    DATA ls_sstmnt TYPE sstmnt.
+    FIELD-SYMBOLS <ls_stokesx> TYPE stokesx.
+    DATA lt_match TYPE match_result_tab.
+    FIELD-SYMBOLS <ls_match> TYPE match_result.
+
+    lo_statement = get_next( ).
+    WHILE lo_statement IS BOUND.
+      index = lo_statement->get_index( ).
+      ls_sstmnt = lo_statement->get_all_fields( ).
+      READ TABLE tab_stmnt_index WITH KEY table_line = index TRANSPORTING NO FIELDS.
+      IF sy-subrc <> 0.
+        APPEND index TO tab_stmnt_index.
+        CLEAR full_statement.
+        LOOP AT scabsrc->lt_stokesx ASSIGNING <ls_stokesx>
+              FROM ls_sstmnt-from
+              TO   ls_sstmnt-to.
+          IF full_statement IS INITIAL.
+            full_statement = <ls_stokesx>-str.
           ELSE.
-            CONCATENATE FULL_STATEMENT <LS_STOKESX>-STR INTO FULL_STATEMENT
-                  SEPARATED BY SPACE.
+            CONCATENATE full_statement <ls_stokesx>-str INTO full_statement
+                  SEPARATED BY space.
           ENDIF.
         ENDLOOP.
-        APPEND FULL_STATEMENT TO TAB_FULL_TEXT.
+        APPEND full_statement TO tab_full_text.
       ENDIF.
-      LO_STATEMENT = GET_NEXT( ).
+      lo_statement = get_next( ).
     ENDWHILE.
 
-    FIND ALL OCCURRENCES OF REGEX REGEX IN TABLE TAB_FULL_TEXT RESULTS LT_MATCH.
-    LOOP AT LT_MATCH ASSIGNING <LS_MATCH>.
+    FIND ALL OCCURRENCES OF REGEX regex IN TABLE tab_full_text RESULTS lt_match.
+    LOOP AT lt_match ASSIGNING <ls_match>.
       ...
     ENDLOOP.
 
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_STATEMENTS~GET_NEXT.
+  METHOD zif_scabsrc_statements~get_next.
 
-    FIELD-SYMBOLS <RANGE> TYPE TY_IS_RANGE.
-    IF FROM >= 1.
-      IF NEXT = 0.
-        NEXT = FROM.
-      ENDIF.
-      IF NEXT <= TO.
-        CREATE OBJECT STATEMENT TYPE ZCL_SCABSRC_STATEMENT
-          EXPORTING
-            SCABSRC = SCABSRC
-            INDEX   = NEXT.
-        ADD 1 TO NEXT.
-      ENDIF.
-    ELSE.
-      IF NEXT = 0.
-        NEXT = 1.
-        NEXT2 = 0.
-      ENDIF.
-      DO.
-        READ TABLE TAB_RANGE ASSIGNING <RANGE> INDEX NEXT.
-        IF SY-SUBRC <> 0.
-          EXIT.
-        ENDIF.
-        IF NEXT2 = 0.
-          NEXT2 = <RANGE>-FROM.
-        ENDIF.
-        IF NEXT2 <= <RANGE>-TO.
-          CREATE OBJECT STATEMENT TYPE ZCL_SCABSRC_STATEMENT
-            EXPORTING
-              SCABSRC = SCABSRC
-              INDEX   = NEXT2.
-          ADD 1 TO NEXT2.
-          EXIT.
-        ELSE.
-          ADD 1 TO NEXT.
-          NEXT2 = 0.
-        ENDIF.
-      ENDDO.
+    FIELD-SYMBOLS <range> TYPE ty_is_range.
+
+    IF next = 0.
+      next = 1.
+      next2 = 0.
     ENDIF.
+    DO.
+      READ TABLE tab_range ASSIGNING <range> INDEX next.
+      IF sy-subrc <> 0.
+        EXIT.
+      ENDIF.
+      IF next2 = 0.
+        next2 = <range>-from.
+      ENDIF.
+      IF next2 <= <range>-to.
+        CREATE OBJECT statement TYPE zcl_scabsrc_statement
+          EXPORTING
+            scabsrc = scabsrc
+            index   = next2.
+        ADD 1 TO next2.
+        EXIT.
+      ELSE.
+        ADD 1 TO next.
+        next2 = 0.
+      ENDIF.
+    ENDDO.
 
-  endmethod.
+  ENDMETHOD.
 
+  METHOD create_for_block.
+
+    ASSIGN scabsrc->lt_sstruc[ block->index ] TO FIELD-SYMBOL(<sstruc>).
+    ASSERT sy-subrc = 0.
+
+    statements = NEW zcl_scabsrc_statements(
+        scabsrc   = scabsrc
+        tab_range = VALUE #( ( from = <sstruc>-stmnt_from to = <sstruc>-stmnt_to ) ) ).
+
+  ENDMETHOD.
 
 ENDCLASS.

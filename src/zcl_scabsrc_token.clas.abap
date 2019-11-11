@@ -1,71 +1,76 @@
-class ZCL_SCABSRC_TOKEN definition
-  public
-  create public .
+"! <p class="shorttext synchronized" lang="en"></p>
+"!
+CLASS zcl_scabsrc_token DEFINITION
+  PUBLIC
+  CREATE PUBLIC .
 
-public section.
+  PUBLIC SECTION.
 
-  interfaces ZIF_SCABSRC_TOKEN .
+    INTERFACES zif_scabsrc_token .
 
-  aliases GET_ALL_FIELDS
-    for ZIF_SCABSRC_TOKEN~GET_ALL_FIELDS .
-  aliases GET_STATEMENT
-    for ZIF_SCABSRC_TOKEN~GET_STATEMENT .
+    ALIASES get_all_fields
+      FOR zif_scabsrc_token~get_all_fields .
+    ALIASES get_statement
+      FOR zif_scabsrc_token~get_statement .
+    ALIASES value
+      FOR zif_scabsrc_token~value .
 
-  methods CONSTRUCTOR
-    importing
-      !SCABSRC type ref to ZCL_SCABSRC
-      !INDEX type I .
-protected section.
-private section.
+    METHODS constructor
+      IMPORTING
+        !scabsrc TYPE REF TO zcl_scabsrc
+        !index   TYPE i .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 
-  data INDEX type SYTABIX .
-  data SCABSRC type ref to ZCL_SCABSRC .
+    DATA index TYPE sytabix .
+    DATA scabsrc TYPE REF TO zcl_scabsrc .
 ENDCLASS.
 
 
 
-CLASS ZCL_SCABSRC_TOKEN IMPLEMENTATION.
+CLASS zcl_scabsrc_token IMPLEMENTATION.
 
 
-  method CONSTRUCTOR.
+  METHOD constructor.
 
-    ME->INDEX = INDEX.
-    ME->SCABSRC = SCABSRC.
+    me->index = index.
+    me->scabsrc = scabsrc.
+    value = scabsrc->lt_stokesx[ index ]-str.
 
-  endmethod.
-
-
-  method ZIF_SCABSRC_TOKEN~GET_ALL_FIELDS.
-
-    READ TABLE SCABSRC->LT_STOKESX INDEX INDEX INTO TOKEN.
-
-  endmethod.
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_TOKEN~GET_STATEMENT.
+  METHOD zif_scabsrc_token~get_all_fields.
 
-    FIELD-SYMBOLS <LS_SSTRUC> TYPE SSTRUC.
-    FIELD-SYMBOLS <LS_STATEMENT> TYPE ZCL_SCABSRC=>TY_IS_STATEMENT_BY_FROM.
+    READ TABLE scabsrc->lt_stokesx INDEX index INTO token.
 
-    IF SCABSRC->AIT_STATEMENT_BY_FROM[] IS INITIAL.
-      SCABSRC->CALCULATE_STATEMENT_BY_FROM( ).
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_token~get_statement.
+
+    FIELD-SYMBOLS <ls_sstruc> TYPE sstruc.
+    FIELD-SYMBOLS <ls_statement> TYPE zcl_scabsrc=>ty_is_statement_by_from.
+
+    IF scabsrc->ait_statement_by_from[] IS INITIAL.
+      scabsrc->calculate_statement_by_from( ).
     ENDIF.
-    READ TABLE SCABSRC->AIT_STATEMENT_BY_FROM ASSIGNING <LS_STATEMENT>
-          WITH KEY FROM = INDEX
+    READ TABLE scabsrc->ait_statement_by_from ASSIGNING <ls_statement>
+          WITH KEY from = index
           BINARY SEARCH.
-    IF SY-SUBRC = 4.
-      READ TABLE SCABSRC->AIT_STATEMENT_BY_FROM ASSIGNING <LS_STATEMENT> INDEX SY-TABIX.
-    ELSEIF SY-SUBRC = 8.
-      READ TABLE SCABSRC->AIT_STATEMENT_BY_FROM ASSIGNING <LS_STATEMENT> INDEX SY-TFILL.
+    IF sy-subrc = 4.
+      READ TABLE scabsrc->ait_statement_by_from ASSIGNING <ls_statement> INDEX sy-tabix.
+    ELSEIF sy-subrc = 8.
+      READ TABLE scabsrc->ait_statement_by_from ASSIGNING <ls_statement> INDEX sy-tfill.
     ENDIF.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT STATEMENT TYPE ZCL_SCABSRC_STATEMENT
+    IF sy-subrc = 0.
+      CREATE OBJECT statement TYPE zcl_scabsrc_statement
         EXPORTING
-          SCABSRC = SCABSRC
-          INDEX   = <LS_STATEMENT>-INDEX.
+          scabsrc = scabsrc
+          index   = <ls_statement>-index.
     ENDIF.
 
-  endmethod.
+  ENDMETHOD.
 
 
 ENDCLASS.
