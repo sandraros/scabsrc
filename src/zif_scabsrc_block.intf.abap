@@ -45,12 +45,12 @@ INTERFACE zif_scabsrc_block
   METHODS get_parent_block
     RETURNING
       VALUE(block) TYPE REF TO zif_scabsrc_block .
-  METHODS get_all_fields
-    RETURNING
-      VALUE(block) TYPE sstruc .
-  METHODS get_index
-    RETURNING
-      VALUE(index) TYPE sytabix .
+*  METHODS get_all_fields
+*    RETURNING
+*      VALUE(block) TYPE sstruc .
+*  METHODS get_index
+*    RETURNING
+*      VALUE(index) TYPE sytabix .
   METHODS get_type
     RETURNING
       VALUE(type) TYPE ty_type .
@@ -61,4 +61,6 @@ INTERFACE zif_scabsrc_block
     RETURNING
       VALUE(statement) TYPE REF TO zif_scabsrc_statement .
   DATA scabsrc TYPE REF TO zcl_scabsrc READ-ONLY.
+  DATA sstruc TYPE sstruc READ-ONLY.
+  DATA index TYPE sytabix READ-ONLY.
 ENDINTERFACE.

@@ -8,28 +8,34 @@ CLASS zcl_scabsrc_statements DEFINITION
 
     INTERFACES zif_scabsrc_statements .
 
-    ALIASES full_text_search
-      FOR zif_scabsrc_statements~full_text_search .
-    ALIASES get_next
-      FOR zif_scabsrc_statements~get_next .
     ALIASES count
       FOR zif_scabsrc_statements~count .
+    ALIASES full_text_search
+      FOR zif_scabsrc_statements~full_text_search .
+    ALIASES reset
+      FOR zif_scabsrc_statements~reset .
+    ALIASES get_next
+      FOR zif_scabsrc_statements~get_next .
 
     CLASS-METHODS create
       IMPORTING
-        scabsrc           TYPE REF TO zcl_scabsrc
-        type              TYPE zif_scabsrc_statement=>ty_type OPTIONAL
-        rng_type          TYPE zif_scabsrc_statement=>ty_rng_type OPTIONAL
+        !scabsrc          TYPE REF TO zcl_scabsrc
+        !type             TYPE zif_scabsrc_statement=>ty_type OPTIONAL
+        !rng_type         TYPE zif_scabsrc_statement=>ty_rng_type OPTIONAL
       RETURNING
-        VALUE(statements) TYPE REF TO zif_scabsrc_statements.
-
+        VALUE(statements) TYPE REF TO zif_scabsrc_statements .
     CLASS-METHODS create_for_block
       IMPORTING
-        scabsrc           TYPE REF TO zcl_scabsrc
-        block             TYPE REF TO zcl_scabsrc_block
+        !scabsrc          TYPE REF TO zcl_scabsrc
+        !block            TYPE REF TO zif_scabsrc_block
       RETURNING
-        VALUE(statements) TYPE REF TO zif_scabsrc_statements.
-
+        VALUE(statements) TYPE REF TO zif_scabsrc_statements .
+    CLASS-METHODS create_for_source_unit
+      IMPORTING
+        !scabsrc          TYPE REF TO zcl_scabsrc
+        !source_unit      TYPE REF TO zif_scabsrc_source_unit
+      RETURNING
+        VALUE(statements) TYPE REF TO zif_scabsrc_statements .
   PROTECTED SECTION.
   PRIVATE SECTION.
 
@@ -54,6 +60,16 @@ ENDCLASS.
 
 
 CLASS zcl_scabsrc_statements IMPLEMENTATION.
+
+
+  METHOD constructor.
+
+    me->tab_range = tab_range.
+    me->scabsrc = scabsrc.
+    me->count = REDUCE #( INIT i = 0 FOR line IN tab_range NEXT i = i + line-to - line-from + 1 ).
+    me->next = 0.
+
+  ENDMETHOD.
 
 
   METHOD create.
@@ -82,55 +98,48 @@ CLASS zcl_scabsrc_statements IMPLEMENTATION.
   ENDMETHOD.
 
 
-  METHOD constructor.
+  METHOD create_for_block.
 
-    me->tab_range = tab_range.
-    me->scabsrc = scabsrc.
-    me->count = REDUCE #( INIT i = 0 FOR line IN tab_range NEXT i = i + line-to - line-from + 1 ).
-    me->next = 0.
+    statements = NEW zcl_scabsrc_statements(
+        scabsrc   = scabsrc
+        tab_range = VALUE #( ( from = block->sstruc-stmnt_from to = block->sstruc-stmnt_to ) ) ).
+
+  ENDMETHOD.
+
+
+  METHOD create_for_source_unit.
+
+    statements = NEW zcl_scabsrc_statements(
+          scabsrc   = scabsrc
+          tab_range = VALUE #( ( from = source_unit->slevel-from to = source_unit->slevel-to ) ) ).
 
   ENDMETHOD.
 
 
   METHOD zif_scabsrc_statements~full_text_search.
 
-    DATA lo_statement TYPE REF TO zif_scabsrc_statement.
-    DATA index TYPE sytabix.
-    DATA full_statement TYPE string.
-    DATA tab_stmnt_index TYPE TABLE OF sytabix.
-    DATA tab_full_text TYPE TABLE OF string.
-    DATA ls_sstmnt TYPE sstmnt.
-    FIELD-SYMBOLS <ls_stokesx> TYPE stokesx.
-    DATA lt_match TYPE match_result_tab.
-    FIELD-SYMBOLS <ls_match> TYPE match_result.
+    DATA(temp_tab_range) = VALUE ty_it_range( ).
 
-    lo_statement = get_next( ).
-    WHILE lo_statement IS BOUND.
-      index = lo_statement->get_index( ).
-      ls_sstmnt = lo_statement->get_all_fields( ).
-      READ TABLE tab_stmnt_index WITH KEY table_line = index TRANSPORTING NO FIELDS.
-      IF sy-subrc <> 0.
-        APPEND index TO tab_stmnt_index.
-        CLEAR full_statement.
-        LOOP AT scabsrc->lt_stokesx ASSIGNING <ls_stokesx>
-              FROM ls_sstmnt-from
-              TO   ls_sstmnt-to.
-          IF full_statement IS INITIAL.
-            full_statement = <ls_stokesx>-str.
-          ELSE.
-            CONCATENATE full_statement <ls_stokesx>-str INTO full_statement
-                  SEPARATED BY space.
-          ENDIF.
-        ENDLOOP.
-        APPEND full_statement TO tab_full_text.
+    reset( ).
+    DO zif_scabsrc_statements~count TIMES.
+      DATA(statement) = get_next( ).
+
+      DATA(tokens_string) = REDUCE string(
+        INIT str = ``
+        FOR <stokesx> IN scabsrc->lt_stokesx
+            FROM statement->sstmnt-from
+            TO   nmin( val1 = statement->sstmnt-from + limit_tokens - 1 val2 = statement->sstmnt-to )
+        NEXT str = COND #(
+            WHEN str IS INITIAL THEN <stokesx>-str
+            ELSE |{ str }\n{ <stokesx>-str }| ) ).
+
+      IF matches( val = tokens_string regex = regex ).
+        temp_tab_range = VALUE #( BASE temp_tab_range ( from = statement->index to = statement->index  ) ).
       ENDIF.
-      lo_statement = get_next( ).
-    ENDWHILE.
 
-    FIND ALL OCCURRENCES OF REGEX regex IN TABLE tab_full_text RESULTS lt_match.
-    LOOP AT lt_match ASSIGNING <ls_match>.
-      ...
-    ENDLOOP.
+    ENDDO.
+
+    statements = NEW zcl_scabsrc_statements( scabsrc = me->scabsrc tab_range = temp_tab_range ).
 
   ENDMETHOD.
 
@@ -166,15 +175,36 @@ CLASS zcl_scabsrc_statements IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD create_for_block.
 
-    ASSIGN scabsrc->lt_sstruc[ block->index ] TO FIELD-SYMBOL(<sstruc>).
-    ASSERT sy-subrc = 0.
+  METHOD zif_scabsrc_statements~reset.
 
-    statements = NEW zcl_scabsrc_statements(
-        scabsrc   = scabsrc
-        tab_range = VALUE #( ( from = <sstruc>-stmnt_from to = <sstruc>-stmnt_to ) ) ).
+    next = 0.
 
   ENDMETHOD.
+
+
+  METHOD zif_scabsrc_statements~get_matching_groups_of_tokens.
+    TYPES: BEGIN OF ty_word,
+             from TYPE i,
+             to   TYPE i,
+           END OF ty_word,
+           BEGIN OF ty_statement,
+             words     TYPE STANDARD TABLE OF ty_word WITH EMPTY KEY,
+             all_words TYPE string,
+           END OF ty_statement.
+
+    reset( ).
+    DO zif_scabsrc_statements~count TIMES.
+      DATA(statement) = get_next( ).
+
+      DATA(tokens) = statement->get_matching_tokens( regex ).
+      IF tokens->count > 0.
+        APPEND tokens TO groups_of_tokens.
+      ENDIF.
+
+    ENDDO.
+
+  ENDMETHOD.
+
 
 ENDCLASS.

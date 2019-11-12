@@ -6,10 +6,10 @@ CLASS zcl_scabsrc_tokens DEFINITION
 
     INTERFACES zif_scabsrc_tokens .
 
-    ALIASES get_next
-      FOR zif_scabsrc_tokens~get_next .
-    ALIASES count
-      FOR zif_scabsrc_tokens~count .
+*    ALIASES get_next
+*      FOR zif_scabsrc_tokens~get_next .
+*    ALIASES count
+*      FOR zif_scabsrc_tokens~count .
 
     METHODS constructor
       IMPORTING
@@ -23,7 +23,6 @@ CLASS zcl_scabsrc_tokens DEFINITION
     DATA from TYPE sytabix .
     DATA to TYPE sytabix .
     DATA next TYPE sytabix .
-    DATA scabsrc TYPE REF TO zcl_scabsrc .
 ENDCLASS.
 
 
@@ -36,8 +35,15 @@ CLASS zcl_scabsrc_tokens IMPLEMENTATION.
     me->from = from.
     me->to   = to.
     me->next = from.
-    me->scabsrc = scabsrc.
-    me->count = to - from + 1.
+    me->zif_scabsrc_tokens~scabsrc = scabsrc.
+    me->zif_scabsrc_tokens~count = to - from + 1.
+
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_tokens~reset.
+
+    next = from + position - 1.
 
   ENDMETHOD.
 
@@ -47,7 +53,7 @@ CLASS zcl_scabsrc_tokens IMPLEMENTATION.
     IF next <= to.
       CREATE OBJECT token TYPE zcl_scabsrc_token
         EXPORTING
-          scabsrc = scabsrc
+          scabsrc = zif_scabsrc_tokens~scabsrc
           index   = next.
       ADD 1 TO next.
     ENDIF.
@@ -61,7 +67,7 @@ CLASS zcl_scabsrc_tokens IMPLEMENTATION.
     IF index BETWEEN from AND to.
       CREATE OBJECT token TYPE zcl_scabsrc_token
         EXPORTING
-          scabsrc = scabsrc
+          scabsrc = zif_scabsrc_tokens~scabsrc
           index   = index.
     ENDIF.
 

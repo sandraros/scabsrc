@@ -1,17 +1,18 @@
-interface ZIF_SCABSRC_SOURCE_UNIT
-  public .
+"! <p class="shorttext synchronized" lang="en"></p>
+"!
+INTERFACE zif_scabsrc_source_unit
+  PUBLIC .
 
 
-  methods GET_INVOKING_UNIT
-    returning
-      value(SOURCE_UNIT) type ref to ZIF_SCABSRC_SOURCE_UNIT .
-  methods GET_INVOKING_STATEMENT
-    returning
-      value(STATEMENT) type ref to ZIF_SCABSRC_STATEMENT .
-  methods GET_STATEMENTS
-    returning
-      value(STATEMENTS) type ref to ZIF_SCABSRC_STATEMENTS .
-  methods GET_ALL_FIELDS
-    returning
-      value(SOURCE_UNIT) type SLEVEL .
-endinterface.
+  METHODS get_invoking_unit
+    RETURNING
+      VALUE(source_unit) TYPE REF TO zif_scabsrc_source_unit .
+  METHODS get_invoking_statement
+    RETURNING
+      VALUE(statement) TYPE REF TO zif_scabsrc_statement .
+  METHODS get_statements
+    RETURNING
+      VALUE(statements) TYPE REF TO zif_scabsrc_statements .
+  DATA slevel TYPE slevel READ-ONLY.
+  DATA index TYPE sytabix READ-ONLY.
+ENDINTERFACE.

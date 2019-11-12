@@ -11,8 +11,6 @@ INTERFACE zif_scabsrc_blocks
   METHODS get_first_statement_each_block
     RETURNING
       VALUE(statements) TYPE ty_statements .
+  DATA scabsrc TYPE REF TO zcl_scabsrc READ-ONLY.
   DATA count TYPE i READ-ONLY.
-*  METHODS add_block
-*    IMPORTING
-*      !index TYPE sytabix .
 ENDINTERFACE.

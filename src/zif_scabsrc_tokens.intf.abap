@@ -4,6 +4,9 @@ INTERFACE zif_scabsrc_tokens
   PUBLIC .
 
 
+  METHODS reset
+    IMPORTING
+      position TYPE i DEFAULT 1.
   METHODS get_next
     RETURNING
       VALUE(token) TYPE REF TO zif_scabsrc_token .
@@ -20,4 +23,5 @@ INTERFACE zif_scabsrc_tokens
   "! <li> &nbsp; &nbsp;( tokens->get_next( )->value ) ).</li>
   "! </ul>
   DATA count TYPE i READ-ONLY.
+  DATA scabsrc TYPE REF TO zcl_scabsrc .
 ENDINTERFACE.

@@ -8,14 +8,12 @@ CLASS zcl_scabsrc_statement DEFINITION
 
     INTERFACES zif_scabsrc_statement .
 
-    ALIASES get_all_fields
-      FOR zif_scabsrc_statement~get_all_fields .
+    ALIASES sstmnt
+      FOR zif_scabsrc_statement~sstmnt .
     ALIASES get_block
       FOR zif_scabsrc_statement~get_block .
     ALIASES get_blocks
       FOR zif_scabsrc_statement~get_blocks .
-    ALIASES get_index
-      FOR zif_scabsrc_statement~get_index .
     ALIASES get_source_unit
       FOR zif_scabsrc_statement~get_source_unit .
     ALIASES get_tokens
@@ -28,8 +26,6 @@ CLASS zcl_scabsrc_statement DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA index TYPE sytabix .
-    DATA scabsrc TYPE REF TO zcl_scabsrc .
 ENDCLASS.
 
 
@@ -39,71 +35,90 @@ CLASS zcl_scabsrc_statement IMPLEMENTATION.
 
   METHOD constructor.
 
-    me->index = index.
-    me->scabsrc = scabsrc.
-
-  ENDMETHOD.
-
-
-  METHOD zif_scabsrc_statement~get_all_fields.
-
-    READ TABLE scabsrc->lt_sstmnt INDEX index INTO statement.
+    me->zif_scabsrc_statement~index = index.
+    me->zif_scabsrc_statement~scabsrc = scabsrc.
+    me->zif_scabsrc_statement~sstmnt = scabsrc->lt_sstmnt[ index ].
+    me->zif_scabsrc_statement~tokens_count = zif_scabsrc_statement~sstmnt-to - zif_scabsrc_statement~sstmnt-from + 1.
 
   ENDMETHOD.
 
 
   METHOD zif_scabsrc_statement~get_block.
 
-    FIELD-SYMBOLS <ls_sstmnt> TYPE sstmnt.
-    READ TABLE scabsrc->lt_sstmnt INDEX index ASSIGNING <ls_sstmnt>.
-    IF sy-subrc = 0.
-      CREATE OBJECT block TYPE zcl_scabsrc_block
-        EXPORTING
-          scabsrc = scabsrc
-          index   = <ls_sstmnt>-struc.
-    ENDIF.
+    CREATE OBJECT block TYPE zcl_scabsrc_block
+      EXPORTING
+        scabsrc = zif_scabsrc_statement~scabsrc
+        index   = zif_scabsrc_statement~sstmnt-struc.
 
   ENDMETHOD.
 
 
   METHOD zif_scabsrc_statement~get_blocks.
 
-*    DATA lo_block TYPE REF TO zif_scabsrc_block.
-*
-*    lo_block = get_block( ).
-*    IF lo_block IS BOUND.
-*      CREATE OBJECT blocks TYPE zcl_scabsrc_blocks
-*        EXPORTING
-*          scabsrc = scabsrc.
-*    ENDIF.
-*    WHILE lo_block IS BOUND.
-*      blocks->add_block( lo_block->get_index( ) ).
-*      IF ( type IS SUPPLIED AND type = lo_block->get_type( ) )
-*            OR ( stmnt_type IS SUPPLIED AND stmnt_type = lo_block->get_stmnt_type( ) ).
-*        EXIT.
-*      ENDIF.
-*      lo_block = lo_block->get_parent_block( ).
-*    ENDWHILE.
+    blocks = zcl_scabsrc_blocks=>create_for_statement(
+        statement      = me
+        type           = type
+        stmnt_type     = stmnt_type
+        rng_type       = rng_type
+        rng_stmnt_type = rng_stmnt_type ).
 
   ENDMETHOD.
 
 
-  METHOD zif_scabsrc_statement~get_index.
+  METHOD zif_scabsrc_statement~get_matching_tokens.
+    TYPES: BEGIN OF ty_word,
+             from TYPE i,
+             to   TYPE i,
+           END OF ty_word,
+           BEGIN OF ty_statement,
+             words     TYPE STANDARD TABLE OF ty_word WITH EMPTY KEY,
+             all_words TYPE string,
+           END OF ty_statement.
 
-    index = me->index.
+    DATA(statement) = REDUCE ty_statement(
+        INIT aux TYPE ty_statement
+        FOR <token> IN zif_scabsrc_statement~scabsrc->lt_stokesx
+            FROM zif_scabsrc_statement~sstmnt-from
+            TO zif_scabsrc_statement~sstmnt-to
+        NEXT aux-words = VALUE #(
+                LET prev_to = COND #( WHEN aux-words IS INITIAL THEN -2 ELSE aux-words[ lines( aux-words ) ]-to ) IN
+                BASE aux-words (
+                from = prev_to + 2
+                to   = prev_to + 1 + strlen( <token>-str ) ) )
+             aux-all_words = |{ aux-all_words }{ <token>-str }\n| ).
+
+    FIND FIRST OCCURRENCE OF REGEX regex IN statement-all_words RESULTS DATA(match).
+    CHECK sy-subrc = 0.
+    READ TABLE statement-words WITH KEY from = match-offset BINARY SEARCH TRANSPORTING NO FIELDS.
+    DATA(first_word_number) = COND i( WHEN sy-subrc = 0 THEN sy-tabix ELSE sy-tabix - 1 ).
+    READ TABLE statement-words WITH KEY from = match-offset + match-length - 1 BINARY SEARCH TRANSPORTING NO FIELDS.
+    DATA(last_word_number) = COND i( WHEN sy-subrc = 0 THEN sy-tabix ELSE sy-tabix - 1 ).
+    tokens = NEW zcl_scabsrc_tokens(
+        scabsrc = zif_scabsrc_statement~scabsrc
+        from    = zif_scabsrc_statement~sstmnt-from + first_word_number - 1
+        to      = zif_scabsrc_statement~sstmnt-from + last_word_number - 1 ).
 
   ENDMETHOD.
 
 
   METHOD zif_scabsrc_statement~get_source_unit.
 
-    FIELD-SYMBOLS <ls_sstmnt> TYPE sstmnt.
-    READ TABLE scabsrc->lt_sstmnt INDEX index ASSIGNING <ls_sstmnt>.
-    IF sy-subrc = 0.
-      CREATE OBJECT source_unit TYPE zcl_scabsrc_source_unit
+    CREATE OBJECT source_unit TYPE zcl_scabsrc_source_unit
+      EXPORTING
+        scabsrc = zif_scabsrc_statement~scabsrc
+        index   = zif_scabsrc_statement~sstmnt-level.
+
+  ENDMETHOD.
+
+
+  METHOD zif_scabsrc_statement~get_token.
+
+    DATA(index_token) = zif_scabsrc_statement~sstmnt-from + position - 1.
+    IF index_token BETWEEN zif_scabsrc_statement~sstmnt-from AND zif_scabsrc_statement~sstmnt-to.
+      CREATE OBJECT token TYPE zcl_scabsrc_token
         EXPORTING
-          scabsrc = scabsrc
-          index   = <ls_sstmnt>-level.
+          scabsrc = zif_scabsrc_statement~scabsrc
+          index   = index_token.
     ENDIF.
 
   ENDMETHOD.
@@ -111,31 +126,13 @@ CLASS zcl_scabsrc_statement IMPLEMENTATION.
 
   METHOD zif_scabsrc_statement~get_tokens.
 
-    ASSIGN scabsrc->lt_sstmnt[ index ] TO FIELD-SYMBOL(<ls_sstmnt>).
-    ASSERT sy-subrc = 0.
-
     CREATE OBJECT tokens TYPE zcl_scabsrc_tokens
       EXPORTING
-        scabsrc = scabsrc
-        from    = <ls_sstmnt>-from
-        to      = <ls_sstmnt>-to.
+        scabsrc = zif_scabsrc_statement~scabsrc
+        from    = zif_scabsrc_statement~sstmnt-from
+        to      = zif_scabsrc_statement~sstmnt-to.
 
   ENDMETHOD.
 
-
-  METHOD zif_scabsrc_statement~get_token.
-
-    ASSIGN scabsrc->lt_sstmnt[ index ] TO FIELD-SYMBOL(<ls_sstmnt>).
-    ASSERT sy-subrc = 0.
-
-    DATA(index_token) = <ls_sstmnt>-from + position - 1.
-    IF index_token BETWEEN <ls_sstmnt>-from AND <ls_sstmnt>-to.
-      CREATE OBJECT token TYPE zcl_scabsrc_token
-        EXPORTING
-          scabsrc = scabsrc
-          index   = index_token.
-    ENDIF.
-
-  ENDMETHOD.
 
 ENDCLASS.

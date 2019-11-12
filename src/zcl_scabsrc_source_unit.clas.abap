@@ -1,76 +1,73 @@
-class ZCL_SCABSRC_SOURCE_UNIT definition
-  public
-  create public .
+CLASS zcl_scabsrc_source_unit DEFINITION
+  PUBLIC
+  CREATE PUBLIC .
 
-public section.
+  PUBLIC SECTION.
 
-  interfaces ZIF_SCABSRC_SOURCE_UNIT .
+    INTERFACES zif_scabsrc_source_unit .
 
-  aliases GET_ALL_FIELDS
-    for ZIF_SCABSRC_SOURCE_UNIT~GET_ALL_FIELDS .
-  aliases GET_INVOKING_STATEMENT
-    for ZIF_SCABSRC_SOURCE_UNIT~GET_INVOKING_STATEMENT .
-  aliases GET_INVOKING_UNIT
-    for ZIF_SCABSRC_SOURCE_UNIT~GET_INVOKING_UNIT .
-  aliases GET_STATEMENTS
-    for ZIF_SCABSRC_SOURCE_UNIT~GET_STATEMENTS .
+*    ALIASES get_all_fields
+*      FOR zif_scabsrc_source_unit~get_all_fields .
+    ALIASES get_invoking_statement
+      FOR zif_scabsrc_source_unit~get_invoking_statement .
+    ALIASES get_invoking_unit
+      FOR zif_scabsrc_source_unit~get_invoking_unit .
+    ALIASES get_statements
+      FOR zif_scabsrc_source_unit~get_statements .
 
-  methods CONSTRUCTOR
-    importing
-      !SCABSRC type ref to ZCL_SCABSRC
-      !INDEX type I .
-protected section.
-private section.
+    METHODS constructor
+      IMPORTING
+        !scabsrc TYPE REF TO zcl_scabsrc
+        !index   TYPE i .
+  PROTECTED SECTION.
+  PRIVATE SECTION.
 
-  data INDEX type SYTABIX .
-  data SCABSRC type ref to ZCL_SCABSRC .
+*    DATA index TYPE sytabix .
+    DATA scabsrc TYPE REF TO zcl_scabsrc .
 ENDCLASS.
 
 
 
-CLASS ZCL_SCABSRC_SOURCE_UNIT IMPLEMENTATION.
+CLASS zcl_scabsrc_source_unit IMPLEMENTATION.
 
 
-  method CONSTRUCTOR.
+  METHOD constructor.
 
-    ME->INDEX = INDEX.
-    ME->SCABSRC = SCABSRC.
+    me->scabsrc = scabsrc.
+    me->zif_scabsrc_source_unit~index = index.
+    me->zif_scabsrc_source_unit~slevel = scabsrc->lt_slevel[ index ].
 
-  endmethod.
+*  ENDMETHOD.
+*
+*
+*  METHOD zif_scabsrc_source_unit~get_all_fields.
+*
+*    READ TABLE scabsrc->lt_slevel INDEX index INTO source_unit.
 
-
-  method ZIF_SCABSRC_SOURCE_UNIT~GET_ALL_FIELDS.
-
-    READ TABLE SCABSRC->LT_SLEVEL INDEX INDEX INTO SOURCE_UNIT.
-
-  endmethod.
-
-
-  method ZIF_SCABSRC_SOURCE_UNIT~GET_INVOKING_STATEMENT.
+  ENDMETHOD.
 
 
-  endmethod.
+  METHOD zif_scabsrc_source_unit~get_invoking_statement.
+
+    RAISE EXCEPTION TYPE zcx_scabsrc_todo.
+
+  ENDMETHOD.
 
 
-  method ZIF_SCABSRC_SOURCE_UNIT~GET_INVOKING_UNIT.
+  METHOD zif_scabsrc_source_unit~get_invoking_unit.
+
+    RAISE EXCEPTION TYPE zcx_scabsrc_todo.
+
+  ENDMETHOD.
 
 
-  endmethod.
+  METHOD zif_scabsrc_source_unit~get_statements.
 
+    statements = zcl_scabsrc_statements=>create_for_source_unit(
+        scabsrc = scabsrc
+        source_unit = me ).
 
-  method ZIF_SCABSRC_SOURCE_UNIT~GET_STATEMENTS.
-
-    FIELD-SYMBOLS <LS_SLEVEL> TYPE SLEVEL.
-    READ TABLE SCABSRC->LT_SLEVEL INDEX INDEX ASSIGNING <LS_SLEVEL>.
-    IF SY-SUBRC = 0.
-      CREATE OBJECT STATEMENTS TYPE ZCL_SCABSRC_STATEMENTS
-        EXPORTING
-          SCABSRC = SCABSRC
-          FROM    = <LS_SLEVEL>-FROM
-          TO      = <LS_SLEVEL>-TO.
-    ENDIF.
-
-  endmethod.
+  ENDMETHOD.
 
 
 ENDCLASS.

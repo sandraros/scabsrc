@@ -9,14 +9,14 @@ CLASS zcl_scabsrc_block DEFINITION
 
     INTERFACES zif_scabsrc_block .
 
-    ALIASES get_all_fields
-      FOR zif_scabsrc_block~get_all_fields .
+*    ALIASES get_all_fields
+*      FOR zif_scabsrc_block~get_all_fields .
     ALIASES get_child_blocks
       FOR zif_scabsrc_block~get_child_blocks .
     ALIASES get_first_statement
       FOR zif_scabsrc_block~get_first_statement .
-    ALIASES get_index
-      FOR zif_scabsrc_block~get_index .
+*    ALIASES get_index
+*      FOR zif_scabsrc_block~get_index .
     ALIASES get_parent_block
       FOR zif_scabsrc_block~get_parent_block .
     ALIASES get_statements
@@ -25,8 +25,8 @@ CLASS zcl_scabsrc_block DEFINITION
       FOR zif_scabsrc_block~get_stmnt_type .
     ALIASES get_type
       FOR zif_scabsrc_block~get_type .
-    ALIASES scabsrc
-      FOR zif_scabsrc_block~scabsrc .
+*    ALIASES scabsrc
+*      FOR zif_scabsrc_block~scabsrc .
 
     METHODS constructor
       IMPORTING
@@ -35,28 +35,29 @@ CLASS zcl_scabsrc_block DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA index TYPE sytabix .
-*    DATA scabsrc TYPE REF TO zcl_scabsrc .
+*    DATA index TYPE sytabix .
+    DATA scabsrc TYPE REF TO zcl_scabsrc .
     DATA temp TYPE sstruc .
 
 ENDCLASS.
 
 
 
-CLASS ZCL_SCABSRC_BLOCK IMPLEMENTATION.
+CLASS zcl_scabsrc_block IMPLEMENTATION.
 
 
   METHOD constructor.
 
-    me->index = index.
     me->scabsrc = scabsrc.
+    me->zif_scabsrc_block~index = index.
+    me->zif_scabsrc_block~sstruc = scabsrc->lt_sstruc[ index ].
 
-  ENDMETHOD.
-
-
-  METHOD zif_scabsrc_block~get_all_fields.
-
-    READ TABLE scabsrc->lt_sstruc INDEX index INTO block.
+*  ENDMETHOD.
+*
+*
+*  METHOD zif_scabsrc_block~get_all_fields.
+*
+*    READ TABLE scabsrc->lt_sstruc INDEX index INTO block.
 
   ENDMETHOD.
 
@@ -70,35 +71,31 @@ CLASS ZCL_SCABSRC_BLOCK IMPLEMENTATION.
 
   METHOD zif_scabsrc_block~get_first_statement.
 
-    FIELD-SYMBOLS <ls_sstruc> TYPE sstruc.
-    READ TABLE scabsrc->lt_sstruc INDEX index ASSIGNING <ls_sstruc>.
-    IF sy-subrc = 0.
-      CREATE OBJECT statement TYPE zcl_scabsrc_statement
-        EXPORTING
-          scabsrc = scabsrc
-          index   = <ls_sstruc>-stmnt_from.
-    ENDIF.
+    CREATE OBJECT statement TYPE zcl_scabsrc_statement
+      EXPORTING
+        scabsrc = scabsrc
+        index   = zif_scabsrc_block~sstruc-stmnt_from.
 
-  ENDMETHOD.
-
-
-  METHOD zif_scabsrc_block~get_index.
-
-    index = me->index.
+*  ENDMETHOD.
+*
+*
+*  METHOD zif_scabsrc_block~get_index.
+*
+*    index = me->index.
 
   ENDMETHOD.
 
 
   METHOD zif_scabsrc_block~get_parent_block.
 
-    FIELD-SYMBOLS <ls_sstruc> TYPE sstruc.
-    READ TABLE scabsrc->lt_sstruc INDEX index ASSIGNING <ls_sstruc>.
-    IF sy-subrc = 0.
-      CREATE OBJECT block TYPE zcl_scabsrc_block
-        EXPORTING
-          scabsrc = scabsrc
-          index   = <ls_sstruc>-back.
-    ENDIF.
+*    FIELD-SYMBOLS <ls_sstruc> TYPE sstruc.
+*    READ TABLE scabsrc->lt_sstruc INDEX index ASSIGNING <ls_sstruc>.
+*    IF sy-subrc = 0.
+    CREATE OBJECT block TYPE zcl_scabsrc_block
+      EXPORTING
+        scabsrc = scabsrc
+        index   = zif_scabsrc_block~sstruc-back.
+*    ENDIF.
 
   ENDMETHOD.
 
@@ -120,7 +117,7 @@ CLASS ZCL_SCABSRC_BLOCK IMPLEMENTATION.
 
 *    READ TABLE scabsrc->lt_sstruc INDEX index INTO temp TRANSPORTING stmnt_type.
 *    stmnt_type = temp-stmnt_type.
-    stmnt_type = scabsrc->lt_sstruc[ index ]-stmnt_type.
+    stmnt_type = zif_scabsrc_block~sstruc-stmnt_type.
 
   ENDMETHOD.
 
@@ -129,7 +126,7 @@ CLASS ZCL_SCABSRC_BLOCK IMPLEMENTATION.
 
 *    READ TABLE scabsrc->lt_sstruc INDEX index INTO temp TRANSPORTING type.
 *    type = temp-type.
-    type = scabsrc->lt_sstruc[ index ]-type.
+    type = zif_scabsrc_block~sstruc-type.
 
   ENDMETHOD.
 

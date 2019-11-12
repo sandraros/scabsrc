@@ -39,14 +39,20 @@ INTERFACE zif_scabsrc_statement
       VALUE(source_unit) TYPE REF TO zif_scabsrc_source_unit .
   METHODS get_blocks
     IMPORTING
-      !type         TYPE zif_scabsrc_block=>ty_type OPTIONAL
-      !stmnt_type   TYPE zif_scabsrc_block=>ty_stmnt_type OPTIONAL
+      type           TYPE zif_scabsrc_block=>ty_type OPTIONAL
+      stmnt_type     TYPE zif_scabsrc_block=>ty_stmnt_type OPTIONAL
+      rng_type       TYPE zif_scabsrc_block=>ty_rng_type OPTIONAL
+      rng_stmnt_type TYPE zif_scabsrc_block=>ty_rng_stmnt_type OPTIONAL
     RETURNING
-      VALUE(blocks) TYPE REF TO zif_scabsrc_blocks .
-  METHODS get_all_fields
+      VALUE(blocks)  TYPE REF TO zif_scabsrc_blocks .
+  METHODS get_matching_tokens
+    IMPORTING
+      regex                  TYPE csequence
     RETURNING
-      VALUE(statement) TYPE sstmnt .
-  METHODS get_index
-    RETURNING
-      VALUE(index) TYPE sytabix .
+      VALUE(tokens) TYPE REF TO zif_scabsrc_tokens.
+  DATA scabsrc TYPE REF TO zcl_scabsrc READ-ONLY.
+  DATA index TYPE sytabix READ-ONLY.
+  DATA sstmnt TYPE sstmnt READ-ONLY.
+  DATA tokens_count TYPE i READ-ONLY.
+
 ENDINTERFACE.

@@ -8,12 +8,12 @@ CLASS zcl_scabsrc_token DEFINITION
 
     INTERFACES zif_scabsrc_token .
 
-    ALIASES get_all_fields
-      FOR zif_scabsrc_token~get_all_fields .
+*    ALIASES get_all_fields
+*      FOR zif_scabsrc_token~get_all_fields .
     ALIASES get_statement
       FOR zif_scabsrc_token~get_statement .
-    ALIASES value
-      FOR zif_scabsrc_token~value .
+*    ALIASES value
+*      FOR zif_scabsrc_token~value .
 
     METHODS constructor
       IMPORTING
@@ -22,7 +22,7 @@ CLASS zcl_scabsrc_token DEFINITION
   PROTECTED SECTION.
   PRIVATE SECTION.
 
-    DATA index TYPE sytabix .
+*    DATA index TYPE sytabix .
     DATA scabsrc TYPE REF TO zcl_scabsrc .
 ENDCLASS.
 
@@ -33,16 +33,17 @@ CLASS zcl_scabsrc_token IMPLEMENTATION.
 
   METHOD constructor.
 
-    me->index = index.
     me->scabsrc = scabsrc.
-    value = scabsrc->lt_stokesx[ index ]-str.
+    me->zif_scabsrc_token~index = index.
+    me->zif_scabsrc_token~stokesx = scabsrc->lt_stokesx[ index ].
+    me->zif_scabsrc_token~value = zif_scabsrc_token~stokesx-str.
 
-  ENDMETHOD.
-
-
-  METHOD zif_scabsrc_token~get_all_fields.
-
-    READ TABLE scabsrc->lt_stokesx INDEX index INTO token.
+*  ENDMETHOD.
+*
+*
+*  METHOD zif_scabsrc_token~get_all_fields.
+*
+*    READ TABLE scabsrc->lt_stokesx INDEX index INTO token.
 
   ENDMETHOD.
 
@@ -56,7 +57,7 @@ CLASS zcl_scabsrc_token IMPLEMENTATION.
       scabsrc->calculate_statement_by_from( ).
     ENDIF.
     READ TABLE scabsrc->ait_statement_by_from ASSIGNING <ls_statement>
-          WITH KEY from = index
+          WITH KEY from = zif_scabsrc_token~index
           BINARY SEARCH.
     IF sy-subrc = 4.
       READ TABLE scabsrc->ait_statement_by_from ASSIGNING <ls_statement> INDEX sy-tabix.
